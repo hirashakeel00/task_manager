@@ -1,6 +1,8 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
-import 'home_page.dart';
+import 'startpage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:get/get.dart';
+import 'homepage.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -10,16 +12,29 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
+  Future<void> checkLoginStatus() async {
+    // print('splash started');
+    await Future.delayed(const Duration(seconds: 3));
+
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+
+    bool isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
+    // print("isLoggedIn: $isLoggedIn");
+
+    if (!mounted) return;
+
+    if (isLoggedIn) {
+      Get.offAll(() => HomePage());
+    } else {
+      Get.offAll(() => StartPage());
+    }
+  }
+
   @override
   void initState() {
     super.initState();
-
-    Timer(const Duration(seconds: 3), () {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => HomePage()),
-      );
-    });
+    // print("Splash initState");
+    checkLoginStatus();
   }
 
   @override

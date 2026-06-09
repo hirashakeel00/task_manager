@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:task_manager/login.dart';
+import 'package:get/get.dart';
+import 'package:task_manager/screens/login.dart';
 
-class HomePage extends StatelessWidget {
+class StartPage extends StatelessWidget {
+  const StartPage({super.key});
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -22,13 +24,10 @@ class HomePage extends StatelessWidget {
                       height: 60,
                     ),
                   ),
-                  Container(
-                    // margin: EdgeInsets.only(left: 10, right: 10),
-                    child: Image.asset(
-                      'assets/images/app_img.png',
-                      width: 120,
-                      height: 120,
-                    ),
+                  Image.asset(
+                    'assets/images/app_img.png',
+                    width: 120,
+                    height: 120,
                   ),
                 ],
               ),
@@ -47,14 +46,7 @@ class HomePage extends StatelessWidget {
               SizedBox(height: 10),
               ElevatedButton(
                 onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) {
-                        return Login();
-                      },
-                    ),
-                  );
+                  Get.to(() => Login());
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Color(0xFFFED36A),
