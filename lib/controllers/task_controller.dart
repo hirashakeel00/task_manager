@@ -1,7 +1,9 @@
 import 'dart:io';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../screens/create_task.dart';
+import 'package:task_manager/screens/create_task.dart';
 
 class TaskController extends GetxController {
   final List<String> avatars = [
@@ -16,25 +18,32 @@ class TaskController extends GetxController {
 
   Rxn<File> profileImage = Rxn<File>();
 
+    RxList<String> members = <String>[].obs;
+    RxList<String> subTasks = <String>[].obs; 
+    RxList<bool> checkedTasks = <bool>[].obs;
   RxList<TaskModel> tasks = <TaskModel>[].obs;
+
+  Rx<DateTime?> selectedDate = Rx<DateTime?>(null);
+  Rx<TimeOfDay?> selectedTime = Rx<TimeOfDay?>(null);
+
+  final titleController = TextEditingController();
+  final detailController = TextEditingController();
+  final memberController = TextEditingController();
+  final subtaskTextEditingController = TextEditingController();
+
   List<TaskModel> get ongoingTasks =>
       tasks.where((task) => !isTaskCompleted(task)).toList();
-
   List<TaskModel> get completedTasks =>
       tasks.where((task) => isTaskCompleted(task)).toList();
 
-  final titleController = TextEditingController();
-  final subtaskTextEditingcontroller = TextEditingController();
-  final detailController = TextEditingController();
-  final memberController = TextEditingController();
-  // RxList<TaskModel> ongoingTasks = <TaskModel>[].obs;
-  // RxList<TaskModel> completedTasks = <TaskModel>[].obs;
+   @override
+  void onInit() {
+    super.onInit();
 
-  RxList<String> members = <String>[].obs;
-  Rx<DateTime?> selectedDate = Rx<DateTime?>(null);
-  Rx<TimeOfDay?> selectedTime = Rx<TimeOfDay?>(null);
-  RxList<String> subTasks = <String>[].obs;
-  RxList<bool> checkedTasks = <bool>[].obs;
+    if (uid == null) return;
+      loadTasks();
+    
+  }
 
   Future<void> pickDate(BuildContext context) async {
     DateTime? picked = await showDatePicker(
@@ -43,7 +52,6 @@ class TaskController extends GetxController {
       firstDate: DateTime(2000),
       lastDate: DateTime(2100),
     );
-
     if (picked != null) {
       selectedDate.value = picked;
     }
@@ -54,27 +62,73 @@ class TaskController extends GetxController {
       context: context,
       initialTime: TimeOfDay.now(),
     );
-
     if (picked != null) {
       selectedTime.value = picked;
     }
   }
 
+  String? get uid => FirebaseAuth.instance.currentUser?.uid;
+
+ CollectionReference get taskRef {
+  final userId = FirebaseAuth.instance.currentUser?.uid;
+
+  if (userId == null) {
+    throw Exception("User not logged in");
+  }
+
+  return FirebaseFirestore.instance
+      .collection('users')
+      .doc(userId)
+      .collection('tasks');
+}
+
+ Future<void> loadTasks() async {
+  final ref = taskRef;
+
+  // if (ref == null) return;
+
+  final snapshot = await ref.get();
+
+  tasks.value = snapshot.docs
+      .map((doc) => TaskModel.fromJson(doc.data() as Map<String, dynamic>))
+      .toList();
+}
+
+  Future<void> createTask() async {
+    TaskModel task = TaskModel(
+      id: DateTime.now().millisecondsSinceEpoch,
+      title: titleController.text,
+      details: detailController.text,
+      member: members.toList(),
+      date: selectedDate.value,
+      time: selectedTime.value,
+      userId: uid,
+      subTasks: [],
+    );
+
+    await taskRef.doc(task.id.toString()).set(task.toJson());
+    tasks.add(task);
+
+    clearFields();
+  }
+
   void addSubTask(int taskId, String title) {
     final taskIndex = tasks.indexWhere((t) => t.id == taskId);
+      if (taskIndex == -1) return;
     tasks[taskIndex].subTasks.add(SubTask(title: title, isCompleted: false));
-
+    taskRef
+        .doc(taskId.toString())
+        .update(tasks[taskIndex].toJson());
     tasks.refresh();
   }
 
   void toggleSubTask({required int taskId, required int subTaskIndex}) {
     final taskIndex = tasks.indexWhere((t) => t.id == taskId);
-
     if (taskIndex == -1) return;
-    // print("Task from tasks list: ${tasks[taskIndex].title}");
-
     tasks[taskIndex].subTasks[subTaskIndex].isCompleted.toggle();
-
+    taskRef
+        .doc(taskId.toString())
+        .update(tasks[taskIndex].toJson());
     tasks.refresh();
   }
 
@@ -105,58 +159,45 @@ class TaskController extends GetxController {
     members.removeAt(index);
   }
 
-  void createTask() {
-    TaskModel task = TaskModel(
-      title: titleController.text,
-      member: members.toList(),
-      details: detailController.text,
-      date: selectedDate.value,
-      time: selectedTime.value,
-      id: DateTime.now().millisecondsSinceEpoch,
-      // subTasks: [],
-    );
-    tasks.add(task);
-    clearFields();
+  Future<void> deleteTask(int taskId) async {
+    await taskRef.doc(taskId.toString()).delete();
+    tasks.removeWhere((t) => t.id == taskId);
   }
 
-  void updateTask(int taskId) {
-    final index = tasks.indexWhere((task) => task.id == taskId);
+  Future<void> updateTask(int taskId) async {
+    final index = tasks.indexWhere((t) => t.id == taskId);
     if (index == -1) return;
 
-    tasks[index] = TaskModel(
+    final updated = TaskModel(
+      id: taskId,
       title: titleController.text,
       details: detailController.text,
       member: members.toList(),
       date: selectedDate.value,
       time: selectedTime.value,
-      id: taskId,
-      // subTasks: [],
+      userId: uid,
+      subTasks: tasks[index].subTasks,
     );
-    tasks.refresh();
-  }
 
-  void deleteTask(int taskId) {
-    tasks.removeWhere((task) => task.id == taskId);
-    tasks.refresh();
-    Get.back();
+    await taskRef.doc(taskId.toString()).update(updated.toJson());
+    tasks[index] = updated;
   }
 
   void clearFields() {
     titleController.clear();
     detailController.clear();
     memberController.clear();
-
     members.clear();
-
-    selectedDate.value = DateTime.now();
-    selectedTime.value = TimeOfDay.now();
+    selectedDate.value = null;
+    selectedTime.value = null;
   }
 
   @override
   void onClose() {
     titleController.dispose();
-    subtaskTextEditingcontroller.dispose();
+    subtaskTextEditingController.dispose();
     detailController.dispose();
+      memberController.dispose();
     super.dispose();
   }
 }

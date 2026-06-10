@@ -5,8 +5,8 @@ import 'package:task_manager/widgets/bottom_navbar.dart';
 import 'package:task_manager/widgets/indicator.dart';
 import '../controllers/task_controller.dart';
 
-class AllTasks extends StatelessWidget {
-  AllTasks({super.key});
+class SeeAllOngoing extends StatelessWidget {
+  SeeAllOngoing({super.key});
 
   final TaskController taskController = Get.find<TaskController>();
 
@@ -17,7 +17,7 @@ class AllTasks extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: Color(0xFF263238),
         title: const Text(
-          "All Tasks",
+          "Ongoing Tasks",
           style: TextStyle(
             color: Colors.white,
             fontFamily: 'PilatExtended',
@@ -29,7 +29,7 @@ class AllTasks extends StatelessWidget {
         centerTitle: true,
       ),
       body: Obx(() {
-        final tasks = taskController.tasks;
+        final tasks = taskController.ongoingTasks;
 
         if (tasks.isEmpty) {
           return const Center(

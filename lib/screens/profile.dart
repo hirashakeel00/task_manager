@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:task_manager/controllers/auth_controller.dart';
 import 'package:task_manager/controllers/task_controller.dart';
-import 'package:task_manager/screens/homepage.dart';
 import 'package:task_manager/screens/login.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
+import 'package:task_manager/widgets/bottom_navbar.dart';
 
 class Profile extends StatefulWidget {
   const Profile({super.key});
@@ -16,10 +17,17 @@ class Profile extends StatefulWidget {
 
 class _ProfileState extends State<Profile> {
   final TaskController taskController = Get.find<TaskController>();
-  final ImagePicker picker = ImagePicker();
+
+  final AuthController authController = Get.find<AuthController>();
+
+  final RxBool isEditingName = false.obs;
+
   String email = '';
   String password = '';
   String name = '';
+
+  final ImagePicker picker = ImagePicker();
+
   Future<void> pickFromCamera() async {
     final XFile? image = await picker.pickImage(source: ImageSource.camera);
 
@@ -66,20 +74,6 @@ class _ProfileState extends State<Profile> {
     );
   }
 
-  Widget buildProfileTile({
-    required String leadingIcon,
-    required String title,
-    required Widget trailing,
-  }) {
-    return ListTile(
-      tileColor: Color(0xFF455A64),
-      textColor: Colors.white,
-      leading: Image.asset(leadingIcon),
-      title: Text(title),
-      trailing: trailing,
-    );
-  }
-
   Future<void> loadUserData() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
 
@@ -87,6 +81,10 @@ class _ProfileState extends State<Profile> {
       name = prefs.getString('name') ?? '';
       email = prefs.getString('email') ?? '';
       password = prefs.getString('password') ?? '';
+
+      authController.nameController.text = name;
+      authController.emailController.text = email;
+      authController.passwordController.text = password;
     });
   }
 
@@ -98,23 +96,6 @@ class _ProfileState extends State<Profile> {
 
   @override
   Widget build(BuildContext context) {
-    final List<Map<String, dynamic>> tileData = [
-      {
-        "leading": "assets/icons/useradd.png",
-        "title": name,
-        "trailing": Image.asset('assets/icons/edit.png'),
-      },
-      {
-        "leading": "assets/icons/usertag.png",
-        "title": email,
-        "trailing": Image.asset('assets/icons/edit.png'),
-      },
-      {
-        "leading": "assets/icons/lock1.png",
-        "title": password,
-        "trailing": Image.asset('assets/icons/edit.png'),
-      },
-    ];
     return Scaffold(
       backgroundColor: Color(0xFF263238),
       appBar: AppBar(
@@ -177,18 +158,72 @@ class _ProfileState extends State<Profile> {
 
             Spacer(),
             // const SizedBox(height: 20),
-            ListView.separated(
-              shrinkWrap: true,
-              physics: NeverScrollableScrollPhysics(),
-              itemCount: tileData.length,
-              itemBuilder: (context, index) {
-                return buildProfileTile(
-                  leadingIcon: tileData[index]["leading"],
-                  title: tileData[index]["title"],
-                  trailing: tileData[index]["trailing"],
-                );
-              },
-              separatorBuilder: (context, index) => const SizedBox(height: 40),
+            Column(
+              children: [
+                Obx(
+                  () => ListTile(
+                    tileColor: const Color(0xFF455A64),
+                    leading: Image.asset("assets/icons/useradd.png"),
+                    title: isEditingName.value
+                        ? TextField(
+                            cursorColor: Colors.white,
+                            controller: authController.nameController,
+                            style: const TextStyle(color: Colors.white),
+                            decoration: const InputDecoration(
+                              border: InputBorder.none,
+                            ),
+                          )
+                        : Text(
+                            authController.nameController.text,
+                            style: const TextStyle(color: Colors.white),
+                          ),
+
+                    trailing: IconButton(
+                      icon: Icon(
+                        isEditingName.value ? Icons.check : Icons.edit,
+                        color: Colors.white,
+                      ),
+                      onPressed: () async {
+                        if (isEditingName.value) {
+                          SharedPreferences prefs =
+                              await SharedPreferences.getInstance();
+
+                          await prefs.setString(
+                            'name',
+                            authController.nameController.text,
+                          );
+
+                          setState(() {
+                            name = authController.nameController.text;
+                          });
+                        }
+
+                        isEditingName.toggle();
+                      },
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 40),
+                ListTile(
+                  tileColor: const Color(0xFF455A64),
+                  leading: Image.asset("assets/icons/usertag.png"),
+                  title: Text(
+                    email,
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                ),
+
+                const SizedBox(height: 40),
+                ListTile(
+                  tileColor: const Color(0xFF455A64),
+                  leading: Image.asset("assets/icons/lock1.png"),
+                  title: const Text(
+                    "••••••••",
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
+              ],
             ),
 
             Spacer(),
@@ -232,6 +267,7 @@ class _ProfileState extends State<Profile> {
           ],
         ),
       ),
+      bottomNavigationBar: const BottomNavbar(),
     );
   }
 }

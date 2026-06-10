@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:task_manager/controllers/nav_controller.dart';
 import 'package:task_manager/controllers/task_controller.dart';
-import 'package:task_manager/screens/all_tasks.dart';
 import 'package:task_manager/screens/create_task.dart';
 import 'package:task_manager/screens/profile.dart';
+import 'package:task_manager/screens/see_all_completed.dart';
+import 'package:task_manager/screens/see_all_ongoing.dart';
 import 'package:task_manager/screens/task_detail.dart';
 import 'package:task_manager/widgets/avatar_list.dart';
 import 'package:task_manager/widgets/bottom_navbar.dart';
@@ -21,7 +21,7 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   String name = '';
   final TaskController taskController = Get.find<TaskController>();
-  final NavController navController = Get.put(NavController());
+  // final NavController navController = Get.put(NavController());
   Future<void> loadUserData() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
 
@@ -139,18 +139,22 @@ class _HomePageState extends State<HomePage> {
                     color: Colors.white,
                   ),
                 ),
-                Text(
-                  'See all',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w400,
-                    color: Color(0xFFFED36A),
+                GestureDetector(
+                  onTap: () {
+                    Get.to(() => SeeAllCompleted());
+                  },
+                  child: Text(
+                    'See all',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w400,
+                      color: Color(0xFFFED36A),
+                    ),
                   ),
                 ),
               ],
             ),
             SizedBox(height: 23),
-            // SizedBox(height: 200, child: completedTask()),
             SizedBox(
               height: 190,
               child: Obx(() {
@@ -162,19 +166,22 @@ class _HomePageState extends State<HomePage> {
                     ),
                   );
                 }
-                return Obx(
-                  () => ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: taskController.completedTasks.length,
-                    itemBuilder: (context, index) {
-                      final task = taskController.completedTasks[index];
-                      // taskController.ongoingTasks.remove(task);
-                      return completedTask(task);
-                    },
-                    separatorBuilder: (context, index) {
-                      return SizedBox(width: 10);
-                    },
-                  ),
+                return ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: taskController.completedTasks.length,
+                  itemBuilder: (context, index) {
+                    final task = taskController.completedTasks[index];
+                    // taskController.ongoingTasks.remove(task);
+                    return GestureDetector(
+                      onTap: () async {
+                        await Get.to(() => TaskDetails(task: task));
+                      },
+                      child: completedTask(task),
+                    );
+                  },
+                  separatorBuilder: (context, index) {
+                    return SizedBox(width: 10);
+                  },
                 );
               }),
             ),
@@ -193,7 +200,7 @@ class _HomePageState extends State<HomePage> {
                 ),
                 GestureDetector(
                   onTap: () {
-                    Get.to(() => AllTasks());
+                    Get.to(() => SeeAllOngoing());
                   },
                   child: Text(
                     'See all',
@@ -223,11 +230,9 @@ class _HomePageState extends State<HomePage> {
                     itemCount: taskController.ongoingTasks.length,
                     itemBuilder: (context, index) {
                       final task = taskController.ongoingTasks[index];
-                      // print('show created task');
                       return GestureDetector(
                         onTap: () async {
                           await Get.to(() => TaskDetails(task: task));
-                          // taskController.getTaskCompletion(index);
                         },
                         child: Container(
                           // height: 160,
@@ -259,8 +264,16 @@ class _HomePageState extends State<HomePage> {
                                       style: TextStyle(color: Colors.white),
                                     ),
                                     SizedBox(height: 10),
-                                    AvatarList(members: task.member ?? []),
-                                    SizedBox(height: 5),
+                                    task.member == null || task.member!.isEmpty
+                                        ? Text(
+                                            'No members added',
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                            ),
+                                          )
+                                        : AvatarList(
+                                            members: task.member ?? [],
+                                          ),
                                     Text(
                                       'Due on: ${task.date?.day}/${task.date?.month}/${task.date?.year}',
                                       style: TextStyle(
@@ -305,14 +318,7 @@ class _HomePageState extends State<HomePage> {
           ],
         ),
       ),
-      bottomNavigationBar: Obx(()=>
-         BottomNavbar(
-          currentIndex: navController.selectedIndex.value,
-            onTap: (index) {
-              navController.changeIndex(index);
-            },
-        ),
-      ),
+      bottomNavigationBar: const BottomNavbar(),
       floatingActionButton: FloatingActionButton(
         backgroundColor: Color(0xFFFED36A),
         onPressed: () {

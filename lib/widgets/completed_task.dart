@@ -16,6 +16,7 @@ Widget completedTask(TaskModel task) {
         Text(
           task.title ?? '',
           style: TextStyle(
+            color: Colors.white,
             fontFamily: 'PilatExtended',
             fontSize: 21,
             fontWeight: FontWeight.w600,

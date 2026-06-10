@@ -1,11 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:task_manager/screens/homepage.dart';
 import 'package:task_manager/screens/login.dart';
-// import 'package:task_manager/services/firestore_service.dart';
 import 'package:task_manager/widgets/customtextfield.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/gestures.dart';
 import 'package:task_manager/controllers/auth_controller.dart';
 
@@ -20,36 +19,32 @@ class _SignupState extends State<Signup> {
   final AuthController authController = Get.find<AuthController>();
 
   final _formKey = GlobalKey<FormState>();
-
-  // final TextEditingController nameController = TextEditingController();
-
-  // final TextEditingController emailController = TextEditingController();
-
-  // final TextEditingController passwordController = TextEditingController();
-
-  // final TextEditingController confirmPasswordController =
-  //     TextEditingController();
-
-  // bool obscurePassword = true;
-  // bool obscureConfirmPassword = true;
-  Future<void> registerUser({
-    required String name,
-    required String email,
-    required String password,
-  }) async {
-    try {
-      await FirebaseFirestore.instance.collection('users').add({
-        'name': name,
-        'email': email,
-        'password': password,
-      });
-
-      // print("User saved successfully");
-    } catch (e) {
-      // print("Firestore Error: $e");
-    }
+ Future<void> registerUser({
+  required String name,
+  required String email,
+  required String password,
+}) async {
+  try {
+    UserCredential userCredential =
+        await FirebaseAuth.instance.createUserWithEmailAndPassword(
+      email: email,
+      password: password,
+    );
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(userCredential.user!.uid)
+        .set({
+      'name': name,
+      'email': email,
+    });
+  } on FirebaseAuthException catch (e) {
+    Get.snackbar("Error", e.message ?? "Signup failed");
+    rethrow;
+  } catch (e) {
+    Get.snackbar("Error", "Something went wrong");
+    rethrow;
   }
-
+}
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -60,12 +55,12 @@ class _SignupState extends State<Signup> {
           padding: const EdgeInsets.all(12),
 
           child: Form(
-            key: _formKey,
+        key: _formKey,
 
-            child: Column(
+        child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
 
-              children: [
+          children: [
                 // const SizedBox(height: 20),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -229,40 +224,28 @@ class _SignupState extends State<Signup> {
                   height: 55,
 
                   child: ElevatedButton(
-                    onPressed: () async {
-                      if (_formKey.currentState!.validate()) {
-                        await registerUser(
-                          name: authController.nameController.text.trim(),
-                          email: authController.emailController.text.trim(),
-                          password: authController.passwordController.text
-                              .trim(),
-                        );
+              onPressed: () async {
+  if (_formKey.currentState!.validate()) {
+    try {
+      await registerUser(
+        name: authController.nameController.text.trim(),
+        email: authController.emailController.text.trim(),
+        password: authController.passwordController.text.trim(),
+      );
 
-                        SharedPreferences prefs =
-                            await SharedPreferences.getInstance();
+      authController.nameController.clear();
+      authController.emailController.clear();
+      authController.passwordController.clear();
+      authController.confirmPasswordController.clear();
 
-                        await prefs.setBool('isLoggedIn', true);
+      Get.snackbar("Success", "Account created");
 
-                        await prefs.setString(
-                          'name',
-                          authController.nameController.text.trim(),
-                        );
-
-                        // Get.offAll(() => HomePage());
-                        authController.nameController.clear();
-                        authController.emailController.clear();
-                        authController.passwordController.clear();
-                        authController.confirmPasswordController.clear();
-
-                        Get.snackbar(
-                          'Success',
-                          'Account created successfully',
-                          snackPosition: SnackPosition.BOTTOM,
-                        );
-
-                        Get.offAll(() => HomePage());
-                      }
-                    },
+      Get.offAll(() => HomePage());
+    } catch (e) {
+      // error already shown in registerUser
+    }
+  }
+},
 
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFFED36A),
@@ -358,8 +341,8 @@ class _SignupState extends State<Signup> {
                             ..onTap = () {
                               Get.to(() => Login());
                             },
-                        ),
-                      ],
+            ),
+          ],
                     ),
                   ),
                 ),

@@ -293,12 +293,26 @@ class _TaskDetailsState extends State<TaskDetails> {
                   content: Form(
                     key: _formKey,
                     child: TextFormField(
+                      cursorColor: Colors.white,
+                      style: TextStyle(color: Colors.white),
                       decoration: InputDecoration(
+                        enabledBorder: OutlineInputBorder(
+                          borderSide: BorderSide(color: Color(0xFF455A64)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderSide: BorderSide(
+                            color: Color(
+                              0xFF455A64,
+                            ), // Border color when selected
+                          ),
+                        ),
                         filled: true,
                         border: OutlineInputBorder(),
-                        fillColor: Color(0xFFFED36A),
+                        fillColor: Color(0xFF36474E),
                         hintText: 'Enter the subtasks',
-                        hintStyle: TextStyle(color: Color(0xFF455A64)),
+                        hintStyle: TextStyle(
+                          color: Color.fromARGB(255, 103, 127, 137),
+                        ),
                       ),
                       // textcapitalize: TextCapitalization.sentences,
                       textCapitalization: TextCapitalization.sentences,
@@ -308,7 +322,7 @@ class _TaskDetailsState extends State<TaskDetails> {
                         }
                         return null;
                       },
-                      controller: taskController.subtaskTextEditingcontroller,
+                      controller: taskController.subtaskTextEditingController,
                     ),
                   ),
                   actions: [
@@ -326,9 +340,9 @@ class _TaskDetailsState extends State<TaskDetails> {
                           // print("Subtask added");
                           taskController.addSubTask(
                             widget.task.id!,
-                            taskController.subtaskTextEditingcontroller.text,
+                            taskController.subtaskTextEditingController.text,
                           );
-                          taskController.subtaskTextEditingcontroller.clear();
+                          taskController.subtaskTextEditingController.clear();
                           Get.back();
                         }
                       },

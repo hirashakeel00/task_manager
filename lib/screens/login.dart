@@ -1,4 +1,5 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+// import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_text_divider/flutter_text_divider.dart';
 import 'package:get/get.dart';
@@ -7,7 +8,7 @@ import 'package:flutter/gestures.dart';
 import 'package:task_manager/screens/signup.dart';
 import 'package:task_manager/widgets/customtextfield.dart';
 import 'package:task_manager/controllers/auth_controller.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+// import 'package:shared_preferences/shared_preferences.dart';
 
 class Login extends StatefulWidget {
   const Login({super.key});
@@ -17,41 +18,28 @@ class Login extends StatefulWidget {
 }
 
 class _Login extends State<Login> {
-  final AuthController authController = Get.find<AuthController>();
-  Future<bool> loginUser({
-    required String email,
-    required String password,
-  }) async {
-    QuerySnapshot snapshot = await FirebaseFirestore.instance
-        .collection('users')
-        .where('email', isEqualTo: email)
-        .get();
-    // print("Entered Email: $email");
-    // print("Documents found: ${snapshot.docs.length}");
-
-    if (snapshot.docs.isEmpty) {
-      // print('User Not Found');
+final AuthController authController = Get.find<AuthController>(); 
+ Future<bool> login(String email, String password) async {
+    try {
+      final result = await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+      return result.user != null;
+    } catch (e) {
       return false;
     }
-
-    var user = snapshot.docs.first;
-    // print("Firestore Email: ${user['email']}");
-    // print("Firestore Password: ${user['password']}");
-    // print("Entered Password: $password");
-
-
-  return user['password'].toString() == password;
   }
 
   @override
   void initState() {
     super.initState();
-    // _passwordVisible = false;
+   // _passwordVisible = false; 
   }
 
-  final _formKey = GlobalKey<FormState>();
+   final _formKey = GlobalKey<FormState>(); 
 
-  // bool _passwordVisible = false;
+   // bool _passwordVisible = false;
 
   @override
   Widget build(BuildContext context) {
@@ -138,17 +126,6 @@ class _Login extends State<Login> {
                   ),
                 ),
                 SizedBox(height: 8),
-
-                // TextField(
-                //   decoration: InputDecoration(
-                //     filled: true,
-                //     fillColor: Color(0xFF455A64),
-                //     border: OutlineInputBorder(),
-                //   ),
-                //   onChanged: (text) {
-                //     print('Current text: $text');
-                //   },
-                // ),
                 Obx(
                   () => Customtextfield(
                     textcapitalize: TextCapitalization.sentences,
@@ -202,53 +179,21 @@ class _Login extends State<Login> {
                 ElevatedButton(
                   onPressed: () async {
                     if (_formKey.currentState!.validate()) {
-                      try {
-                        bool isValid = await loginUser(
-                          email: authController.emailController.text.trim(),
-                          password: authController.passwordController.text.trim(),
+                      
+                        bool isValid = await login(
+                          authController.emailController.text.trim(),
+                    authController.passwordController.text.trim(),
                         );
 
-                        if (isValid) {
-                          SharedPreferences prefs =
-                              await SharedPreferences.getInstance();
+                         if (isValid) {
+                    authController.emailController.clear();
+                    authController.passwordController.clear();
 
-                          await prefs.setBool('isLoggedIn', true);
-
-                          await prefs.setString(
-                            'email',
-                            authController.emailController.text.trim(),
-                          );
-
-                          await prefs.setString(
-                            'password',
-                            authController.passwordController.text.trim(),
-                          );
-
-                          authController.emailController.clear();
-                          authController.passwordController.clear();
-
-                          Get.snackbar(
-                            'Success',
-                            'Login successful',
-                            snackPosition: SnackPosition.BOTTOM,
-                          );
-
-                          Get.offAll(() => HomePage());
-                        } else {
-                          Get.snackbar(
-                            'Login Failed',
-                            'Invalid email or password',
-                            snackPosition: SnackPosition.BOTTOM,
-                          );
-                        }
-                      } catch (e) {
-                        Get.snackbar(
-                          'Error',
-                          e.toString(),
-                          snackPosition: SnackPosition.BOTTOM,
-                        );
-
-                        // print("Login Error: $e");
+                    Get.snackbar("Success", "Login successful");
+                    Get.offAll(() => HomePage());
+                  } else {
+                    Get.snackbar("Error", "Invalid credentials");
+                  
                       }
                     }
                   },

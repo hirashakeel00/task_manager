@@ -1,15 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:task_manager/screens/all_tasks.dart';
+import 'package:task_manager/screens/homepage.dart';
+import 'package:task_manager/screens/profile.dart';
 
 class BottomNavbar extends StatelessWidget {
-  final int currentIndex;
-  final Function(int) onTap;
-
-  const BottomNavbar({
-    super.key,
-    required this.currentIndex,
-    required this.onTap,
-  });
+  const BottomNavbar({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -18,42 +14,45 @@ class BottomNavbar extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _navItem(index: 0, icon: Icons.person, label: "Profile"),
-          _navItem(index: 1, icon: Icons.home_filled, label: "Home"),
-          _navItem(index: 2, icon: Icons.list, label: "Tasks"),
+          _navItem(
+            icon: Icons.list,
+            label: "All Tasks",
+            onTap: () => Get.off(() => AllTasks()),
+          ),
+          _navItem(
+            icon: Icons.home_filled,
+            label: "Home",
+            onTap: () => Get.off(() => HomePage()),
+          ),
+          _navItem(
+            icon: Icons.person,
+            label: "Profile",
+            onTap: () => Get.off(() => Profile()),
+          ),
         ],
       ),
     );
   }
 
   Widget _navItem({
-    required int index,
     required IconData icon,
     required String label,
+    required VoidCallback onTap,
   }) {
-    final bool isSelected = currentIndex == index;
-
     return GestureDetector(
-      onTap: () => onTap(index),
+      onTap: onTap,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            icon,
-            size: 25,
-            color: isSelected
-                ? const Color(0xFFFED36A)
-                : const Color(0xFFE3BF64),
+          const Icon(
+            Icons.circle, // remove this line if not needed
+            size: 0,
           ),
+          Icon(icon, size: 25, color: const Color(0xFFFED36A)),
           const SizedBox(height: 5),
           Text(
             label,
-            style: TextStyle(
-              color: isSelected
-                  ? const Color(0xFFFED36A)
-                  : const Color(0xFFE3BF64),
-              fontSize: 12,
-            ),
+            style: const TextStyle(color: Color(0xFFE3BF64), fontSize: 12),
           ),
         ],
       ),

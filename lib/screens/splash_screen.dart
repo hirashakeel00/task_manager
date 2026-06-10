@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'startpage.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:get/get.dart';
-import 'homepage.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:task_manager/screens/homepage.dart';
+import 'package:task_manager/screens/login.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -13,27 +13,22 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<SplashScreen> {
   Future<void> checkLoginStatus() async {
-    // print('splash started');
     await Future.delayed(const Duration(seconds: 3));
 
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-
-    bool isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
-    // print("isLoggedIn: $isLoggedIn");
+    final user = FirebaseAuth.instance.currentUser;
 
     if (!mounted) return;
 
-    if (isLoggedIn) {
+    if (user != null) {
       Get.offAll(() => HomePage());
     } else {
-      Get.offAll(() => StartPage());
+      Get.offAll(() => Login());
     }
   }
 
   @override
   void initState() {
     super.initState();
-    // print("Splash initState");
     checkLoginStatus();
   }
 
@@ -41,7 +36,6 @@ class _SplashScreenState extends State<SplashScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF263238),
-
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -50,16 +44,12 @@ class _SplashScreenState extends State<SplashScreen> {
               'assets/icons/bro.png',
               width: 200,
               height: 200,
-              fit: BoxFit.contain,
             ),
-
-            SizedBox(height: 20),
-
+            const SizedBox(height: 20),
             Image.asset(
               'assets/images/app_img.png',
               width: 200,
               height: 200,
-              fit: BoxFit.contain,
             ),
           ],
         ),

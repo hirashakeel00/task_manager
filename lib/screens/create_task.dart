@@ -15,7 +15,8 @@ class TaskModel {
   final TimeOfDay? time;
   final Image? avatar;
   final int? id;
-  RxList<SubTask> subTasks = <SubTask>[].obs;
+  final String? userId;
+  List<SubTask> subTasks;
   TaskModel({
     this.title,
     this.details,
@@ -24,7 +25,33 @@ class TaskModel {
     this.time,
     this.avatar,
     this.id,
+    this.userId,
+    required this.subTasks,
   });
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'title': title,
+    'details': details,
+    'member': member,
+    'date': date?.toIso8601String(),
+    'time': time?.format(Get.context!),
+    'userId': userId,
+    'subTasks': subTasks.map((e) => e.toJson()).toList(),
+  };
+  factory TaskModel.fromJson(Map<String, dynamic> json) {
+    return TaskModel(
+      id: json['id'],
+      title: json['title'],
+      details: json['details'],
+      member: List<String>.from(json['member']),
+      date: json['date'] != null ? DateTime.parse(json['date']) : null,
+      time: null,
+      userId: json['userId'],
+      subTasks: json['subTasks'] != null
+          ? List<SubTask>.from(json['subTasks'].map((e) => SubTask.fromJson(e)))
+          : [],
+    );
+  }
 }
 
 class MemberModel {
@@ -37,8 +64,18 @@ class SubTask {
   String title;
   RxBool isCompleted;
 
-  SubTask({required this.title, bool isCompleted = false})
+  SubTask({required this.title, required bool isCompleted})
     : isCompleted = isCompleted.obs;
+
+  Map<String, dynamic> toJson() {
+    return {'title': title, 'isCompleted': isCompleted.value};
+  }
+  factory SubTask.fromJson(Map<String, dynamic> json) {
+    return SubTask(
+      title: json['title'],
+      isCompleted: json['isCompleted'] ?? false,
+    );
+  }
 }
 
 class CreateTask extends StatefulWidget {
@@ -56,13 +93,6 @@ class _CreateTaskState extends State<CreateTask> {
   final TaskController taskController = Get.find<TaskController>();
   final _formKey = GlobalKey<FormState>();
   final _formKey1 = GlobalKey<FormState>();
-  // List<String> member = [];
-  // DateTime selectedDate = DateTime.now();
-  // TimeOfDay selectedTime = TimeOfDay.now();
-  // final random = Random();
-  // final TextEditingController _controller = TextEditingController();
-  // final TextEditingController _titleController = TextEditingController();
-  // final TextEditingController _detailController = TextEditingController();
   @override
   void initState() {
     super.initState();
@@ -180,9 +210,6 @@ class _CreateTaskState extends State<CreateTask> {
                                   taskController.members[index],
                                   () => taskController.removeMember(index),
                                   taskController.avatars[index],
-                                  // AvatarList(
-                                  //   members: globalTaskList[index].member ?? [],
-                                  // ),
                                 ),
                               );
                             },
@@ -207,6 +234,8 @@ class _CreateTaskState extends State<CreateTask> {
                               content: Form(
                                 key: _formKey1,
                                 child: TextFormField(
+                                  cursorColor: Colors.white,
+                                  style: TextStyle(color: Colors.white),
                                   decoration: InputDecoration(
                                     enabledBorder: OutlineInputBorder(
                                       borderSide: BorderSide(
@@ -222,7 +251,7 @@ class _CreateTaskState extends State<CreateTask> {
                                     ),
                                     filled: true,
                                     border: OutlineInputBorder(),
-                                    fillColor: Color.fromARGB(255, 54, 71, 78),
+                                    fillColor: Color(0xFF36474E),
                                     hintText: 'Enter member name',
                                     hintStyle: TextStyle(
                                       color: Color.fromARGB(255, 130, 154, 157),
@@ -230,7 +259,6 @@ class _CreateTaskState extends State<CreateTask> {
                                   ),
                                   textCapitalization:
                                       TextCapitalization.sentences,
-
                                   controller: taskController.memberController,
                                   autovalidateMode:
                                       AutovalidateMode.onUserInteraction,
