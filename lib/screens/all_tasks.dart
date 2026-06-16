@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:task_manager/controllers/nav_controller.dart';
 import 'package:task_manager/widgets/avatar_list.dart';
-import 'package:task_manager/widgets/bottom_navbar.dart';
 import 'package:task_manager/widgets/indicator.dart';
 import '../controllers/task_controller.dart';
+import 'package:lottie/lottie.dart';
 
 class AllTasks extends StatelessWidget {
   AllTasks({super.key});
 
   final TaskController taskController = Get.find<TaskController>();
+  final NavController navController = Get.find<NavController>();
 
   @override
   Widget build(BuildContext context) {
@@ -32,10 +34,11 @@ class AllTasks extends StatelessWidget {
         final tasks = taskController.tasks;
 
         if (tasks.isEmpty) {
-          return const Center(
-            child: Text(
-              "No Tasks Found",
-              style: TextStyle(fontSize: 16, color: Colors.white),
+          return Center(
+            child: SizedBox(
+              height: 200,
+              width: 200,
+              child: Lottie.asset('assets/animation/nodatafound.json'),
             ),
           );
         }
@@ -113,7 +116,6 @@ class AllTasks extends StatelessWidget {
           },
         );
       }),
-      bottomNavigationBar: const BottomNavbar(),
     );
   }
 }

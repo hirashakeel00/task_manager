@@ -9,12 +9,6 @@ class Indicator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-
-    // int totalTasks = addTaskList.length;
-    // int completedTasks = checkedTasks.where((task) => task).length;
-    // double progress = totalTasks == 0 ? 0 : completedTasks / totalTasks;
-   
-
     return Stack(
       alignment: Alignment.center,
       children: [
@@ -22,7 +16,7 @@ class Indicator extends StatelessWidget {
           height: 60,
           width: 60,
           child: CircularProgressIndicator(
-            value: progressValue,
+            value: progressValue.clamp(0, 1),
             strokeWidth: 2,
             backgroundColor: Colors.white12,
             valueColor: const AlwaysStoppedAnimation(Color(0xFFFED36A)),

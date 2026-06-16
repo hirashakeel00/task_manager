@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bounceable/flutter_bounceable.dart';
 import 'package:get/get.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cloudinary_made_easy/cloudinary_made_easy.dart';
 import 'package:task_manager/controllers/auth_controller.dart';
 import 'package:task_manager/controllers/task_controller.dart';
 import 'package:task_manager/screens/login.dart';
-import 'dart:io';
 import 'package:image_picker/image_picker.dart';
-import 'package:task_manager/widgets/bottom_navbar.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:task_manager/widgets/customtextfield.dart';
+import 'package:task_manager/widgets/cloudinary_avatar.dart';
 
 class Profile extends StatefulWidget {
   const Profile({super.key});
@@ -17,22 +20,48 @@ class Profile extends StatefulWidget {
 
 class _ProfileState extends State<Profile> {
   final TaskController taskController = Get.find<TaskController>();
-
+  final FocusNode nameFocusNode = FocusNode();
   final AuthController authController = Get.find<AuthController>();
+  final CloudinaryService cloudinary = CloudinaryService(
+    cloudName: 'dffuhbguj',
+    uploadPreset: 'profile_uploads',
+  );
 
   final RxBool isEditingName = false.obs;
 
+  final ImagePicker picker = ImagePicker();
+
   String email = '';
-  String password = '';
   String name = '';
 
-  final ImagePicker picker = ImagePicker();
+  Future<String?> uploadProfileImage(XFile imageFile) async {
+    try {
+      return await cloudinary.uploadFile(imageFile, folder: 'profile_pictures');
+    } catch (e) {
+      debugPrint("Cloudinary upload error: $e");
+      return null;
+    }
+  }
+
+  Future<void> saveImageUrlToFirestore(String url) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+      'profileImage': url,
+    }, SetOptions(merge: true));
+  }
 
   Future<void> pickFromCamera() async {
     final XFile? image = await picker.pickImage(source: ImageSource.camera);
 
     if (image != null) {
-      taskController.profileImage.value = File(image.path);
+      final url = await uploadProfileImage(image);
+      if (url != null) {
+        await saveImageUrlToFirestore(url);
+        taskController.profileImage.value = null;
+        taskController.profileImageUrl.value = url;
+      }
     }
   }
 
@@ -40,7 +69,12 @@ class _ProfileState extends State<Profile> {
     final XFile? image = await picker.pickImage(source: ImageSource.gallery);
 
     if (image != null) {
-      taskController.profileImage.value = File(image.path);
+      final url = await uploadProfileImage(image);
+      if (url != null) {
+        await saveImageUrlToFirestore(url);
+        taskController.profileImage.value = null;
+        taskController.profileImageUrl.value = url;
+      }
     }
   }
 
@@ -75,17 +109,32 @@ class _ProfileState extends State<Profile> {
   }
 
   Future<void> loadUserData() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
 
-    setState(() {
-      name = prefs.getString('name') ?? '';
-      email = prefs.getString('email') ?? '';
-      password = prefs.getString('password') ?? '';
+    final doc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .get();
 
-      authController.nameController.text = name;
-      authController.emailController.text = email;
-      authController.passwordController.text = password;
-    });
+    if (doc.exists) {
+      final data = doc.data();
+      final storedName = data?['name'] as String? ?? '';
+      final imageUrl = data?['profileImage'] as String? ?? '';
+
+      setState(() {
+        name = storedName;
+        email = user.email ?? '';
+
+        authController.nameController.text = name;
+        authController.emailController.text = email;
+      });
+
+      taskController.profileImageUrl.value = imageUrl;
+      if (imageUrl.isEmpty) {
+        taskController.profileImage.value = null;
+      }
+    }
   }
 
   @override
@@ -112,21 +161,51 @@ class _ProfileState extends State<Profile> {
             Center(
               child: Stack(
                 children: [
-                  Obx(
-                    () => CircleAvatar(
-                      radius: 64,
-                      backgroundColor: Color(0xFFFED36A),
-                      child: CircleAvatar(
-                        radius: 60,
-                        backgroundColor: Colors.black,
-                        backgroundImage:
-                            taskController.profileImage.value != null
-                            ? FileImage(taskController.profileImage.value!)
-                            : AssetImage('assets/images/Ellipse.png')
-                                  as ImageProvider,
-                      ),
+                  //  CircleAvatar(
+                  //     radius: 64,
+                  //     backgroundColor: Color(0xFFFED36A),
+                  //     child: CircleAvatar(
+                  //       radius: 60,
+                  //       backgroundColor: Colors.black,
+                  //       backgroundImage:
+                  //           taskController.profileImage.value != null
+                  //           ? FileImage(taskController.profileImage.value!)
+                  //           : AssetImage('assets/images/Ellipse.png')
+                  //                 as ImageProvider,
+                  //     ),
+                  //   ),
+                  GestureDetector(
+                    onTap: () {
+                      if (taskController.profileImage.value == null) return;
+                      showDialog(
+                        context: context,
+                        barrierColor: Colors.black87,
+                        builder: (context) {
+                          return GestureDetector(
+                            onTap: () => Navigator.pop(context),
+                            child: Center(
+                              child: Image.file(
+                                taskController.profileImage.value!,
+                                fit: BoxFit.contain,
+                              ),
+                            ),
+                          );
+                        },
+                      );
+                    },
+                    child: Hero(
+                      tag: 'profilePic',
+                      child: Obx(() {
+                        return CloudinaryAvatar(
+                          radius: 60,
+                          imageUrl: taskController.profileImageUrl.value,
+                          localFile: taskController.profileImage.value,
+                          backgroundColor: Colors.black,
+                        );
+                      }),
                     ),
                   ),
+
                   Positioned(
                     top: 90,
                     left: 90,
@@ -165,13 +244,15 @@ class _ProfileState extends State<Profile> {
                     tileColor: const Color(0xFF455A64),
                     leading: Image.asset("assets/icons/useradd.png"),
                     title: isEditingName.value
-                        ? TextField(
-                            cursorColor: Colors.white,
-                            controller: authController.nameController,
-                            style: const TextStyle(color: Colors.white),
+                        ? Customtextfield(
+                            expands: false,
                             decoration: const InputDecoration(
+                              isDense: true,
+                              contentPadding: EdgeInsets.symmetric(vertical: 0),
                               border: InputBorder.none,
                             ),
+                            controller: authController.nameController,
+                            textcapitalize: TextCapitalization.sentences,
                           )
                         : Text(
                             authController.nameController.text,
@@ -185,19 +266,20 @@ class _ProfileState extends State<Profile> {
                       ),
                       onPressed: () async {
                         if (isEditingName.value) {
-                          SharedPreferences prefs =
-                              await SharedPreferences.getInstance();
-
-                          await prefs.setString(
-                            'name',
-                            authController.nameController.text,
-                          );
-
-                          setState(() {
-                            name = authController.nameController.text;
-                          });
+                          final user = FirebaseAuth.instance.currentUser;
+                          if (user != null) {
+                            await FirebaseFirestore.instance
+                                .collection('users')
+                                .doc(user.uid)
+                                .update({
+                                  'name': authController.nameController.text
+                                      .trim(),
+                                });
+                            setState(() {
+                              name = authController.nameController.text.trim();
+                            });
+                          }
                         }
-
                         isEditingName.toggle();
                       },
                     ),
@@ -227,47 +309,51 @@ class _ProfileState extends State<Profile> {
             ),
 
             Spacer(),
-            ElevatedButton(
-              onPressed: () async {
-                SharedPreferences prefs = await SharedPreferences.getInstance();
-
-                await prefs.setBool('isLoggedIn', false);
-
-                Get.snackbar(
-                  'Success',
-                  'Logged out successfully',
-                  snackPosition: SnackPosition.BOTTOM,
-                );
-
-                Get.offAll(() => Login());
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Color(0xFFFED36A),
-                minimumSize: Size(400, 60),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-              ),
-              child: Row(
-                // spacing: 10,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Image.asset('assets/icons/logoutcurve.png'),
-                  SizedBox(width: 10),
-                  Text(
-                    "Logout",
-                    style: TextStyle(
-                      fontSize: 18,
-                      color: Colors.black,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            // SizedBox(height: 10),
           ],
         ),
       ),
-      bottomNavigationBar: const BottomNavbar(),
+      bottomNavigationBar: Padding(
+        padding: const EdgeInsets.all(12.0),
+        child: Bounceable(
+          onTap: () async {
+            await FirebaseAuth.instance.signOut();
+
+            Get.snackbar(
+              // ignore: deprecated_member_use
+              backgroundColor: Color(0xFFFED36A).withOpacity(0.7),
+              colorText: Color(0xFF263238),
+              'Success',
+              'Logged out successfully',
+              snackPosition: SnackPosition.BOTTOM,
+            );
+
+            Get.offAll(() => Login());
+          },
+          child: Container(
+            width: double.infinity,
+            height: 55,
+            decoration: const BoxDecoration(
+              color: Color(0xFFFED36A),
+              borderRadius: BorderRadius.zero,
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Image.asset('assets/icons/logoutcurve.png'),
+                const SizedBox(width: 10),
+                const Text(
+                  "Logout",
+                  style: TextStyle(
+                    fontSize: 18,
+                    color: Colors.black,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

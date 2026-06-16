@@ -42,6 +42,11 @@ dependencies:
   firebase_auth: ^6.5.2
   cloud_firestore: ^6.5.0
   firebase_core: ^4.10.0
+  flutter_bounceable: ^1.2.0
+  lottie: ^3.3.3
+  delayed_display: ^2.0.0
+  cloudinary_made_easy: ^0.1.2
+  dio: ^5.9.2
 
 dev_dependencies:
   flutter_test:
@@ -75,6 +80,7 @@ flutter:
   assets:
     - assets/icons/
     - assets/images/
+    - assets/animation/
   #   - images/a_dot_ham.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see

@@ -1,85 +1,15 @@
 // import 'dart:math';
+import 'package:flutter_bounceable/flutter_bounceable.dart';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
+import 'package:task_manager/models/task_model.dart';
 import 'package:task_manager/screens/homepage.dart';
 import 'package:task_manager/widgets/customtextfield.dart';
 import 'package:task_manager/controllers/task_controller.dart';
 import '../widgets/member_card.dart';
 import 'package:intl/intl.dart';
 
-class TaskModel {
-  final String? title;
-  final String? details;
-  final List<String>? member;
-  final DateTime? date;
-  final TimeOfDay? time;
-  final Image? avatar;
-  final int? id;
-  final String? userId;
-  List<SubTask> subTasks;
-  TaskModel({
-    this.title,
-    this.details,
-    this.member,
-    this.date,
-    this.time,
-    this.avatar,
-    this.id,
-    this.userId,
-    required this.subTasks,
-  });
-  Map<String, dynamic> toJson() => {
-    'id': id,
-    'title': title,
-    'details': details,
-    'member': member,
-    'date': date?.toIso8601String(),
-    'time': time?.format(Get.context!),
-    'userId': userId,
-    'subTasks': subTasks.map((e) => e.toJson()).toList(),
-  };
-  factory TaskModel.fromJson(Map<String, dynamic> json) {
-    return TaskModel(
-      id: json['id'],
-      title: json['title'],
-      details: json['details'],
-      member: List<String>.from(json['member']),
-      date: json['date'] != null ? DateTime.parse(json['date']) : null,
-      time: null,
-      userId: json['userId'],
-      subTasks: json['subTasks'] != null
-          ? List<SubTask>.from(json['subTasks'].map((e) => SubTask.fromJson(e)))
-          : [],
-    );
-  }
-}
-
-class MemberModel {
-  final String? name;
-  final String? image;
-  const MemberModel({this.name, this.image});
-}
-
-class SubTask {
-  String title;
-  RxBool isCompleted;
-
-  SubTask({required this.title, required bool isCompleted})
-    : isCompleted = isCompleted.obs;
-
-  Map<String, dynamic> toJson() {
-    return {'title': title, 'isCompleted': isCompleted.value};
-  }
-  factory SubTask.fromJson(Map<String, dynamic> json) {
-    return SubTask(
-      title: json['title'],
-      isCompleted: json['isCompleted'] ?? false,
-    );
-  }
-}
-
 class CreateTask extends StatefulWidget {
-  // final List<TaskModel> taskList;
   final bool isEdit;
   final int? index;
   final TaskModel? task;
@@ -115,13 +45,19 @@ class _CreateTaskState extends State<CreateTask> {
     return Scaffold(
       backgroundColor: Color(0xFF263238),
       appBar: AppBar(
+        centerTitle: true,
         backgroundColor: Color(0xFF263238),
         title: Text(
-          'Create New Task',
+          widget.isEdit ? 'Edit Task' : 'Create Task',
           style: TextStyle(color: Colors.white),
           textAlign: TextAlign.center,
         ),
-        leading: Icon(Icons.arrow_back, color: Colors.white),
+        leading: IconButton(
+          onPressed: () {
+            Get.back();
+          },
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+        ),
       ),
       body: Form(
         key: _formKey,
@@ -319,124 +255,137 @@ class _CreateTaskState extends State<CreateTask> {
                 ),
                 SizedBox(height: 20),
                 Obx(
-                  () => Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      Expanded(
-                        child: Row(
-                          children: [
-                            GestureDetector(
-                              onTap: () {
-                                taskController.pickTime(context);
-                              },
-                              child: Container(
+                  () => GestureDetector(
+                    onTap: () {
+                      taskController.pickTime(context);
+                    },
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        Expanded(
+                          child: Row(
+                            children: [
+                              Container(
+                                color: Color(0xFFFED36A),
+                                height: 45,
+                                width: 40,
+                                child: Image.asset('assets/icons/clock.png'),
+                              ),
+                              Container(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 10,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Color(0xFF455A64),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Text(
+                                      taskController.selectedTime.value != null
+                                          ? taskController.selectedTime.value!
+                                                .format(context)
+                                          : 'Time',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 18,
+                                      ),
+                                    ),
+                                    // SizedBox(width: 20),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        // SizedBox(width: 10),
+                        GestureDetector(
+                          onTap: () {
+                            taskController.pickDate(context);
+                          },
+                          child: Row(
+                            children: [
+                              Container(
                                 color: Color(0xFFFED36A),
                                 height: 45,
                                 width: 45,
-                                child: Image.asset('assets/icons/clock.png'),
+                                child: Image.asset('assets/icons/calendar.png'),
                               ),
-                            ),
-                            Container(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 10,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Color(0xFF455A64),
-                              ),
-                              child: Row(
-                                children: [
-                                  Text(
-                                    taskController.selectedTime.value != null
-                                        ? taskController.selectedTime.value!
-                                              .format(context)
-                                        : 'Time',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 18,
-                                    ),
-                                  ),
-                                  SizedBox(width: 20),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      SizedBox(height: 20),
-                      Row(
-                        children: [
-                          GestureDetector(
-                            onTap: () {
-                              taskController.pickDate(context);
-                            },
-                            child: Container(
-                              color: Color(0xFFFED36A),
-                              height: 45,
-                              width: 45,
-                              child: Image.asset('assets/icons/calendar.png'),
-                            ),
-                          ),
-                          Container(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 10,
-                            ),
-                            decoration: BoxDecoration(color: Color(0xFF455A64)),
-                            child: Row(
-                              children: [
-                                Text(
-                                  taskController.selectedDate.value != null
-                                      ? DateFormat('yyyy-MM-dd').format(
-                                          taskController.selectedDate.value!,
-                                        )
-                                      : 'Date',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 18,
-                                  ),
+                              Container(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 10,
                                 ),
-                                SizedBox(width: 20),
-                              ],
-                            ),
+                                decoration: BoxDecoration(
+                                  color: Color(0xFF455A64),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Text(
+                                      taskController.selectedDate.value != null
+                                          ? DateFormat('yyyy-MM-dd').format(
+                                              taskController
+                                                  .selectedDate
+                                                  .value!,
+                                            )
+                                          : 'Date',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 18,
+                                      ),
+                                    ),
+                                    SizedBox(width: 20),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                    ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
+                SizedBox(height: 60),
               ],
             ),
           ),
         ),
       ),
-      bottomNavigationBar: Container(
-        padding: const EdgeInsets.all(12),
-        color: Color(0xFF263238),
+      bottomNavigationBar: Padding(
+        padding: const EdgeInsets.all(12.0),
         child: SizedBox(
           height: 55,
-          // width: double.infinity,
-          child: ElevatedButton(
-            onPressed: () {
+          width: double.infinity,
+          child: Bounceable(
+            onTap: () async {
               if (_formKey.currentState!.validate()) {
+                bool success = true;
+
                 if (widget.isEdit && widget.task != null) {
-                  taskController.updateTask(widget.task!.id!);
+                  await taskController.updateTask(widget.task!.id!);
                 } else {
-                  taskController.createTask();
+                  success = await taskController.createTask();
                 }
-                Get.off(() => HomePage());
+
+                if (success) {
+                  Get.off(() => HomePage());
+                }
               }
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Color(0xFFFED36A),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.zero),
-            ),
-            child: Text(
-              "Create",
-              style: TextStyle(
-                fontSize: 20,
-                color: Colors.black,
-                fontWeight: FontWeight.w700,
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              alignment: Alignment.center,
+              decoration: const BoxDecoration(
+                color: Color(0xFFFED36A),
+                borderRadius: BorderRadius.zero,
+              ),
+              child: Text(
+                widget.isEdit ? 'Edit Task' : "Create Task",
+                style: TextStyle(
+                  fontSize: 20,
+                  color: Colors.black,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
           ),

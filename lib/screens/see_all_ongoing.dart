@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:task_manager/widgets/avatar_list.dart';
-import 'package:task_manager/widgets/bottom_navbar.dart';
 import 'package:task_manager/widgets/indicator.dart';
 import '../controllers/task_controller.dart';
+import 'package:lottie/lottie.dart';
 
 class SeeAllOngoing extends StatelessWidget {
   SeeAllOngoing({super.key});
@@ -32,10 +32,11 @@ class SeeAllOngoing extends StatelessWidget {
         final tasks = taskController.ongoingTasks;
 
         if (tasks.isEmpty) {
-          return const Center(
-            child: Text(
-              "No Tasks Found",
-              style: TextStyle(fontSize: 16, color: Colors.white),
+          return Center(
+            child:SizedBox(
+              height: 200,
+              width: 200,
+              child: Lottie.asset('assets/animation/nodatafound.json'),
             ),
           );
         }
@@ -113,7 +114,6 @@ class SeeAllOngoing extends StatelessWidget {
           },
         );
       }),
-      bottomNavigationBar: const BottomNavbar(),
     );
   }
 }

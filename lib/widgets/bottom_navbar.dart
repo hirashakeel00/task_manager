@@ -1,35 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:task_manager/screens/all_tasks.dart';
-import 'package:task_manager/screens/homepage.dart';
-import 'package:task_manager/screens/profile.dart';
+import 'package:task_manager/controllers/nav_controller.dart';
 
 class BottomNavbar extends StatelessWidget {
-  const BottomNavbar({super.key});
+  BottomNavbar({super.key});
 
+  final NavController navController = Get.find<NavController>();
   @override
   Widget build(BuildContext context) {
-    return BottomAppBar(
-      color: const Color.fromARGB(255, 54, 69, 77),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _navItem(
-            icon: Icons.list,
-            label: "All Tasks",
-            onTap: () => Get.off(() => AllTasks()),
-          ),
-          _navItem(
-            icon: Icons.home_filled,
-            label: "Home",
-            onTap: () => Get.off(() => HomePage()),
-          ),
-          _navItem(
-            icon: Icons.person,
-            label: "Profile",
-            onTap: () => Get.off(() => Profile()),
-          ),
-        ],
+    return Obx(
+      () => BottomAppBar(
+        color: const Color.fromARGB(255, 54, 69, 77),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            _navItem(icon: Icons.home_filled, label: "Home", index: 0),
+            _navItem(icon: Icons.list, label: "All Tasks", index: 1),
+            _navItem(icon: Icons.person, label: "Profile", index: 2),
+          ],
+        ),
       ),
     );
   }
@@ -37,22 +26,27 @@ class BottomNavbar extends StatelessWidget {
   Widget _navItem({
     required IconData icon,
     required String label,
-    required VoidCallback onTap,
+    required int index,
   }) {
+    bool isSelected = navController.selectedIndex.value == index;
+
     return GestureDetector(
-      onTap: onTap,
+      onTap: () => navController.changeIndex(index),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(
-            Icons.circle, // remove this line if not needed
-            size: 0,
+          Icon(
+            icon,
+            size: 25,
+            color: isSelected ? Color(0xFFFED36A) : Colors.white,
           ),
-          Icon(icon, size: 25, color: const Color(0xFFFED36A)),
           const SizedBox(height: 5),
           Text(
             label,
-            style: const TextStyle(color: Color(0xFFE3BF64), fontSize: 12),
+            style: TextStyle(
+              color: isSelected ? Color(0xFFFED36A) : Colors.white,
+              fontSize: 12,
+            ),
           ),
         ],
       ),

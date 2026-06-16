@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:task_manager/screens/homepage.dart';
 import 'package:task_manager/screens/login.dart';
+import 'package:task_manager/screens/main_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -20,7 +20,7 @@ class _SplashScreenState extends State<SplashScreen> {
     if (!mounted) return;
 
     if (user != null) {
-      Get.offAll(() => HomePage());
+      Get.offAll(() => MainScreen());
     } else {
       Get.offAll(() => Login());
     }
@@ -40,17 +40,9 @@ class _SplashScreenState extends State<SplashScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Image.asset(
-              'assets/icons/bro.png',
-              width: 200,
-              height: 200,
-            ),
+            Image.asset('assets/icons/bro.png', width: 200, height: 200),
             const SizedBox(height: 20),
-            Image.asset(
-              'assets/images/app_img.png',
-              width: 200,
-              height: 200,
-            ),
+            Image.asset('assets/images/app_img.png', width: 200, height: 200),
           ],
         ),
       ),

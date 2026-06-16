@@ -1,16 +1,21 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:delayed_display/delayed_display.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:task_manager/controllers/task_controller.dart';
 import 'package:task_manager/screens/create_task.dart';
 import 'package:task_manager/screens/profile.dart';
+import 'package:task_manager/screens/search_task_screen.dart';
 import 'package:task_manager/screens/see_all_completed.dart';
 import 'package:task_manager/screens/see_all_ongoing.dart';
 import 'package:task_manager/screens/task_detail.dart';
+import 'package:task_manager/services/api_service.dart';
 import 'package:task_manager/widgets/avatar_list.dart';
-import 'package:task_manager/widgets/bottom_navbar.dart';
 import 'package:task_manager/widgets/indicator.dart';
 import 'package:task_manager/widgets/completed_task.dart';
+import 'package:task_manager/widgets/cloudinary_avatar.dart';
 import 'package:get/get.dart';
+import 'package:task_manager/controllers/auth_controller.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -19,15 +24,33 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  Map<String, dynamic>? todo;
   String name = '';
+  final AuthController authController = Get.find<AuthController>();
   final TaskController taskController = Get.find<TaskController>();
-  // final NavController navController = Get.put(NavController());
   Future<void> loadUserData() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
+    final user = FirebaseAuth.instance.currentUser;
 
-    setState(() {
-      name = prefs.getString('name') ?? '';
-    });
+    if (user == null) return;
+
+    final doc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .get();
+
+    if (doc.exists) {
+      final data = doc.data();
+      final storedName = data?['name'] as String? ?? '';
+
+      setState(() {
+        name = storedName;
+
+        authController.nameController.text = name;
+      });
+
+      taskController.profileImageUrl.value =
+          data?['profileImage'] as String? ?? '';
+    }
   }
 
   @override
@@ -49,6 +72,7 @@ class _HomePageState extends State<HomePage> {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // SizedBox(height: 10),
                 Text(
                   'Welcome Back!',
                   style: TextStyle(
@@ -73,15 +97,14 @@ class _HomePageState extends State<HomePage> {
               onTap: () async {
                 await Get.to(() => Profile());
               },
-              child: Obx(
-                () => CircleAvatar(
+              child: Obx(() {
+                return CloudinaryAvatar(
                   radius: 25,
-                  backgroundImage: taskController.profileImage.value != null
-                      ? FileImage(taskController.profileImage.value!)
-                      : const AssetImage('assets/images/Ellipse.png')
-                            as ImageProvider,
-                ),
-              ),
+                  imageUrl: taskController.profileImageUrl.value,
+                  localFile: taskController.profileImage.value,
+                  backgroundColor: Colors.black,
+                );
+              }),
             ),
           ],
         ),
@@ -90,11 +113,13 @@ class _HomePageState extends State<HomePage> {
         padding: const EdgeInsets.all(12.0),
         child: Column(
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                SizedBox(
-                  width: MediaQuery.of(context).size.width * 0.75,
+            SizedBox(
+              width: MediaQuery.of(context).size.width * 1,
+              child: GestureDetector(
+                onTap: () {
+                  Get.to(SearchTaskScreen());
+                },
+                child: AbsorbPointer(
                   child: SearchBar(
                     shape: WidgetStateProperty.all(
                       const RoundedRectangleBorder(
@@ -119,13 +144,7 @@ class _HomePageState extends State<HomePage> {
                     leading: Icon(Icons.search, color: Colors.white, size: 30),
                   ),
                 ),
-                Container(
-                  color: Color(0xFFFED36A),
-                  height: 55,
-                  width: 55,
-                  child: Image.asset('assets/icons/setting4.png'),
-                ),
-              ],
+              ),
             ),
             SizedBox(height: 23),
             Row(
@@ -141,7 +160,18 @@ class _HomePageState extends State<HomePage> {
                 ),
                 GestureDetector(
                   onTap: () {
-                    Get.to(() => SeeAllCompleted());
+                    if (taskController.completedTasks.isNotEmpty) {
+                      Get.to(() => SeeAllCompleted());
+                    } else {
+                      Get.snackbar(
+                        // ignore: deprecated_member_use
+                        backgroundColor: Color(0xFFFED36A).withOpacity(0.7),
+                        colorText: Color(0xFF263238),
+                        'No Tasks',
+                        'There are no completed tasks to show',
+                        snackPosition: SnackPosition.TOP,
+                      );
+                    }
                   },
                   child: Text(
                     'See all',
@@ -159,34 +189,45 @@ class _HomePageState extends State<HomePage> {
               height: 190,
               child: Obx(() {
                 if (taskController.completedTasks.isEmpty) {
-                  return const Center(
-                    child: Text(
-                      'No Data Found',
-                      style: TextStyle(color: Colors.white),
+                  return DelayedDisplay(
+                    delay: const Duration(milliseconds: 300),
+                    child: const Center(
+                      child: Text(
+                        'No Data Found',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
                     ),
                   );
                 }
-                return ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: taskController.completedTasks.length,
-                  itemBuilder: (context, index) {
-                    final task = taskController.completedTasks[index];
-                    // taskController.ongoingTasks.remove(task);
-                    return GestureDetector(
-                      onTap: () async {
-                        await Get.to(() => TaskDetails(task: task));
-                      },
-                      child: completedTask(task),
-                    );
-                  },
-                  separatorBuilder: (context, index) {
-                    return SizedBox(width: 10);
-                  },
+                return DelayedDisplay(
+                  delay: const Duration(seconds: 1),
+                  slidingBeginOffset: const Offset(1.0, 0.0),
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: taskController.completedTasks.length,
+                    itemBuilder: (context, index) {
+                      final task = taskController.completedTasks[index];
+                      // taskController.ongoingTasks.remove(task);
+                      return GestureDetector(
+                        onTap: () async {
+                          await Get.to(() => TaskDetails(task: task));
+                        },
+                        child: completedTask(task),
+                      );
+                    },
+                    separatorBuilder: (context, index) {
+                      return SizedBox(width: 10);
+                    },
+                  ),
                 );
               }),
             ),
 
-            SizedBox(height: 10),
+            SizedBox(height: 20),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -200,7 +241,18 @@ class _HomePageState extends State<HomePage> {
                 ),
                 GestureDetector(
                   onTap: () {
-                    Get.to(() => SeeAllOngoing());
+                    if (taskController.ongoingTasks.isNotEmpty) {
+                      Get.to(() => SeeAllOngoing());
+                    } else {
+                      Get.snackbar(
+                        // ignore: deprecated_member_use
+                        backgroundColor: Color(0xFFFED36A).withOpacity(0.7),
+                        colorText: Color(0xFF263238),
+                        'No Tasks',
+                        'There are no ongoing tasks to show',
+                        snackPosition: SnackPosition.TOP,
+                      );
+                    }
                   },
                   child: Text(
                     'See all',
@@ -213,104 +265,117 @@ class _HomePageState extends State<HomePage> {
                 ),
               ],
             ),
-            SizedBox(height: 10),
+            SizedBox(height: 20),
             Expanded(
               child: Obx(() {
                 if (taskController.ongoingTasks.isEmpty) {
-                  return const Center(
-                    child: Text(
-                      'No Data Found',
-                      style: TextStyle(color: Colors.white),
+                  return DelayedDisplay(
+                    delay: const Duration(milliseconds: 300),
+                    child: const Center(
+                      child: Text(
+                        'No Data Found',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
                     ),
                   );
                 }
                 return Obx(
-                  () => ListView.separated(
-                    scrollDirection: Axis.vertical,
-                    itemCount: taskController.ongoingTasks.length,
-                    itemBuilder: (context, index) {
-                      final task = taskController.ongoingTasks[index];
-                      return GestureDetector(
-                        onTap: () async {
-                          await Get.to(() => TaskDetails(task: task));
-                        },
-                        child: Container(
-                          // height: 160,
-                          width: double.infinity,
-                          color: Color(0xFF455A64),
-                          child: Padding(
-                            padding: const EdgeInsets.all(12.0),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceAround,
-                              children: [
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    SizedBox(
-                                      width: 250,
-                                      child: Text(
-                                        // maxLines: 5,
-                                        task.title ?? '',
-                                        style: TextStyle(
-                                          fontSize: 21,
-                                          fontWeight: FontWeight.w600,
-                                          color: Colors.white,
-                                          fontFamily: 'PilatExtended',
+                  () => DelayedDisplay(
+                    delay: const Duration(milliseconds: 500),
+                    child: ListView.separated(
+                      scrollDirection: Axis.vertical,
+                      itemCount: taskController.ongoingTasks.length,
+                      itemBuilder: (context, index) {
+                        final task = taskController.ongoingTasks[index];
+                        return GestureDetector(
+                          onTap: () async {
+                            await Get.to(() => TaskDetails(task: task));
+                          },
+                          child: Container(
+                            // height: 160,
+                            width: double.infinity,
+                            color: Color(0xFF455A64),
+                            child: Padding(
+                              padding: const EdgeInsets.all(12.0),
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceAround,
+                                children: [
+                                  Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      SizedBox(
+                                        width: 250,
+                                        child: Text(
+                                          // maxLines: 5,
+                                          task.title ?? '',
+                                          style: TextStyle(
+                                            fontSize: 21,
+                                            fontWeight: FontWeight.w600,
+                                            color: Colors.white,
+                                            fontFamily: 'PilatExtended',
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                    Text(
-                                      'Team members',
-                                      style: TextStyle(color: Colors.white),
-                                    ),
-                                    SizedBox(height: 10),
-                                    task.member == null || task.member!.isEmpty
-                                        ? Text(
-                                            'No members added',
-                                            style: TextStyle(
-                                              color: Colors.white,
+                                      Text(
+                                        'Team members',
+                                        style: TextStyle(color: Colors.white),
+                                      ),
+                                      SizedBox(height: 10),
+                                      task.member == null ||
+                                              task.member!.isEmpty
+                                          ? Text(
+                                              'No members added',
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                              ),
+                                            )
+                                          : AvatarList(
+                                              members: task.member ?? [],
                                             ),
-                                          )
-                                        : AvatarList(
-                                            members: task.member ?? [],
-                                          ),
-                                    Text(
-                                      'Due on: ${task.date?.day}/${task.date?.month}/${task.date?.year}',
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w400,
-                                        color: Colors.white,
+                                      Text(
+                                        'Due on: ${task.date?.day}/${task.date?.month}/${task.date?.year}',
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w400,
+                                          color: Colors.white,
+                                        ),
                                       ),
-                                    ),
-                                  ],
-                                ),
-                                Column(
-                                  children: [
-                                    IconButton(
-                                      onPressed: () {
-                                        taskController.deleteTask(task.id!);
-                                      },
-                                      icon: Icon(
-                                        Icons.delete,
-                                        color: Colors.white,
-                                        size: 20,
+                                    ],
+                                  ),
+                                  Column(
+                                    children: [
+                                      IconButton(
+                                        onPressed: () {
+                                          taskController.deleteTask(task.id!);
+                                        },
+                                        icon: Icon(
+                                          Icons.delete,
+                                          color: Colors.white,
+                                          size: 20,
+                                        ),
                                       ),
-                                    ),
-                                    Indicator(
-                                      progressValue: taskController
-                                          .getTaskProgress(task),
-                                    ),
-                                  ],
-                                ),
-                              ],
+                                      Indicator(
+                                        progressValue: taskController
+                                            .getTaskProgress(task),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
-                        ),
-                      );
-                    },
-                    separatorBuilder: (context, index) {
-                      return SizedBox(height: 10);
-                    },
+                        );
+                      },
+                      separatorBuilder: (context, index) {
+                        return SizedBox(height: 10);
+                      },
+                    ),
                   ),
                 );
               }),
@@ -318,11 +383,10 @@ class _HomePageState extends State<HomePage> {
           ],
         ),
       ),
-      bottomNavigationBar: const BottomNavbar(),
       floatingActionButton: FloatingActionButton(
         backgroundColor: Color(0xFFFED36A),
         onPressed: () {
-          Get.to(() => CreateTask(isEdit: true));
+          Get.to(() => CreateTask(isEdit: false));
         },
         child: Icon(Icons.add, color: Colors.black),
       ),

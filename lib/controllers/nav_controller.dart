@@ -1,21 +1,26 @@
-import 'package:get/get.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:task_manager/screens/all_tasks.dart';
-import 'package:task_manager/screens/profile.dart';
 import 'package:task_manager/screens/homepage.dart';
+import 'package:task_manager/screens/profile.dart';
 
 class NavController extends GetxController {
-  var selectedIndex = 1.obs;
+  var selectedIndex = 0.obs;
 
-  final pages = [
-    Profile(),
-    HomePage(),
-    AllTasks(),
-  ];
+  Widget get currentPage {
+    switch (selectedIndex.value) {
+      case 0:
+        return const HomePage();
+      case 1:
+        return AllTasks();
+      case 2:
+        return const Profile();
+      default:
+        return const HomePage();
+    }
+  }
 
   void changeIndex(int index) {
     selectedIndex.value = index;
   }
-
-  Widget get currentPage => pages[selectedIndex.value];
 }

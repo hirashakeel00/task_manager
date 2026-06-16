@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:task_manager/models/task_model.dart';
 import 'package:task_manager/widgets/avatar_list.dart';
-import 'package:task_manager/screens/create_task.dart';
 
 Widget completedTask(TaskModel task) {
   return Container(
