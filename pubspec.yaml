@@ -35,6 +35,18 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
   flutter_text_divider: ^0.1.2
+  image_picker: ^1.1.2
+  get: ^4.7.2
+  intl: ^0.20.2
+  shared_preferences: ^2.5.3
+  firebase_auth: ^6.5.2
+  cloud_firestore: ^6.5.0
+  firebase_core: ^4.10.0
+  flutter_bounceable: ^1.2.0
+  lottie: ^3.3.3
+  delayed_display: ^2.0.0
+  cloudinary_made_easy: ^0.1.2
+  dio: ^5.9.2
 
 dev_dependencies:
   flutter_test:
@@ -46,6 +58,12 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/icons/bro.png"
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -62,6 +80,7 @@ flutter:
   assets:
     - assets/icons/
     - assets/images/
+    - assets/animation/
   #   - images/a_dot_ham.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see
@@ -75,10 +94,10 @@ flutter:
   # "family" key with the font family name, and a "fonts" key with a
   # list giving the asset and other descriptors for the font. For
   # example:
-  # fonts:
-  #   - family: Schyler
-  #     fonts:
-  #       - asset: fonts/Schyler-Regular.ttf
+  fonts:
+     - family: PilatExtended
+       fonts:
+         - asset: assets/fonts/PilatExtended-DemiBold.ttf
   #       - asset: fonts/Schyler-Italic.ttf
   #         style: italic
   #   - family: Trajan Pro
